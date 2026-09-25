@@ -185,5 +185,5 @@ always `.`.
 
 ## Hosting
 
-Personal GitHub repo `cavway-assistant-web` (ndschonegg), GitHub Pages from
+Personal GitHub repo `cavway-assistant-web` (Nate-the-Ace), GitHub Pages from
 `main` root. Push/publish happens only on explicit go-ahead.

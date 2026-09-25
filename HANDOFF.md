@@ -26,7 +26,8 @@ for the Cavway X1 cave-survey instrument.
    against an emulator (`emulator.js` + `FakeTransport`) and a "Demo device"
    mode in the UI. Firmware flashing ships labelled "untested on hardware".
 5. Hosting: personal GitHub repo `cavway-assistant-web`, GitHub Pages from
-   `main`. Nothing pushed yet.
+   `main`. Pushed to https://github.com/Nate-the-Ace/cavway-assistant-web
+   (2026-09-24); Pages not enabled yet (no site to serve).
 
 ## Status
 
@@ -35,7 +36,7 @@ for the Cavway X1 cave-survey instrument.
 - [ ] **User review of the spec** (pending; approve or request changes)
 - [ ] Implementation plan (next step after spec approval)
 - [ ] Implementation, tests, demo-mode browser check
-- [ ] Push to GitHub + enable Pages
+- [x] Push to GitHub (Pages: enable once index.html exists)
 - [ ] Real-device verification when the X1 arrives
 
 ## Things worth knowing
