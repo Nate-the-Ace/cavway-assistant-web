@@ -70,7 +70,7 @@ payload + `"\r\n"`. Every send first calls `flushInput()`.
 | writeMemory(addr, bytes) | `3E addrLo addrHi len data` | `3D addrLo addrHi len data` (echo; must equal written bytes) |
 | command(c) | one byte: 0x30 EnterCali, 0x31 QuitCali, 0x36 LaserOn, 0x37 LaserOff, 0x38 LaserTrig | none |
 | fwStart() | `4B` | `4B 01` |
-| fwPacket(idx, data128) | `4C idxLo idxHi data[128] crcLo crcHi` | 6 bytes; `[3]==00`, `[4..5]` = crc (LE) |
+| fwPacket(idx, data128) | `4C idxLo idxHi data[128] crcLo crcHi` | 6 bytes; `[3]==00`, `[4..5]` = crc (LE); bytes 0-2 unchecked (emulator sends `4C idxLo idxHi`) |
 | fwEnd(checksum) | `4D` + checksum u32 LE | `4D 00` |
 
 Stray data: the device may emit unsolicited packets starting 0x01 (data) or
@@ -85,10 +85,11 @@ fwEnd 8000 ms (same as C#).
 
 Addresses: serial number 0x8008 (u16 LE of 4 bytes read); clock 0x8000
 (u32 LE); shot i at memory index i (64 bytes); cali info 0x9040 (16 bytes);
-coeffs 0x90C0 (128 bytes).
+coeffs 0x9080 (128 bytes).
 
-Clock sync writes `Date.now()` local wall-clock as epoch seconds (C# treats
-local time as UTC: `seconds = (Date.now() - tzOffset) / 1000`). Preserve.
+Clock sync writes local wall-clock time as if it were UTC epoch seconds (C#
+`DateTime.Now` with Kind forced to Utc):
+`Math.floor(Date.now() / 1000) - new Date().getTimezoneOffset() * 60`. Preserve.
 
 ### shot.js — port of Shot.cs
 
@@ -108,8 +109,9 @@ gives the same text on any machine.
 
 Header and rows byte-identical to FrmMain export (including the trailing comma
 after every header column and the per-column decimal places F3/F2/F2/F3/F2/F2).
-Flag column text is the table's flag text. Line ending `\r\n`, as C#
-`StreamWriter.WriteLine` on Windows.
+Flag column text is the table's flag text. Line ending `\r\n`, UTF-8 without BOM, as C#
+`StreamWriter.WriteLine` on Windows. (C# appends to an existing file instead
+of replacing it; the browser always produces a fresh file.)
 
 ### coeffs.js — port of FrmCali coeff logic
 
@@ -130,7 +132,10 @@ Flag column text is the table's flag text. Line ending `\r\n`, as C#
 
 - Header check: first 8 bytes `11 23 55 6e 7c ef 6d 5b`; version
   `b12.b13.b14`; build time u32 **big-endian** at bytes 8-11 (UTC).
-- Packets: skip first 256 bytes; 128-byte chunks, last chunk padded with 0xFF;
+- Packets: skip first 256 bytes; 128-byte chunks, last chunk padded with 0xFF.
+  Bug-compatible with C#'s do/while: when the file length is an exact multiple
+  of 128, one extra all-0xFF packet is sent at the end (keeps packet count and
+  checksum identical to the Windows app);
   checksum = u32 sum of per-packet CRC16/MODBUS (poly 0xA001, init 0xFFFF).
 - Progress: 10% after start, 10-90% across packets, 100% on success.
 - Behaviour on failure: stop immediately, report packet index. No retries.
