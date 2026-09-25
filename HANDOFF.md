@@ -33,11 +33,11 @@ for the Cavway X1 cave-survey instrument.
 
 - [x] Upstream analysed
 - [x] Design spec written: `docs/superpowers/specs/2026-09-24-cavway-web-port-design.md`
-- [ ] **User review of the spec** (pending; approve or request changes)
-- [ ] Implementation plan (next step after spec approval)
-- [ ] Implementation, tests, demo-mode browser check
-- [x] Push to GitHub (Pages: enable once index.html exists)
-- [ ] Real-device verification when the X1 arrives
+- [x] Implementation (2026-09-24; spec treated as approved, built straight from it
+      and the upstream C# source), 23 `node --test` tests, demo-mode browser check
+- [x] Push to GitHub
+- [ ] Enable GitHub Pages (main, root)
+- [ ] Real-device verification when the X1 arrives: `docs/real-device-checklist.md`
 
 ## Things worth knowing
 
@@ -50,3 +50,13 @@ for the Cavway X1 cave-survey instrument.
 - Original bugs deliberately fixed: download button stuck disabled after a
   failure; `.coe`/CSV decimal separator depended on OS locale (always `.` now);
   CSV export appended to existing files.
+
+## Implementation notes
+
+- Number formatting reproduces .NET Framework (`src/format.js`): floats go through
+  7 significant digits, doubles 15, then round half away from zero; `.coe` numbers
+  use .NET `G15`/`G7` text (including `E-05` style), so files diff clean against
+  the Windows app.
+- `.coe` time and cali time are the stored epoch read as UTC, like the shot time.
+- Emulator fault switches: `strayBeforeReply`, `dropReplyNumber`,
+  `corruptCrcAtPacket`. Laser trigger adds a shot.

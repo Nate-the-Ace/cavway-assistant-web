@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cavway Assistant Web</title>
+<link rel="stylesheet" href="app.css">
+<script type="module" src="src/app.js"></script>
+</head>
+<body>
+<header>
+  <h1>Cavway Assistant <span class="sub">web</span></h1>
+  <p id="unsupported" class="banner" hidden>This browser has no Web Serial. Use desktop Chrome, Edge or Opera to reach a real X1. Demo device still works.</p>
+</header>
+<main>
+  <section id="connection">
+    <h2>Connection</h2>
+    <div class="row">
+      <button id="btnConnect">Connect</button>
+      <label><input type="checkbox" id="chkDemo"> Demo device</label>
+      <label><input type="checkbox" id="chkAllPorts"> Show all ports</label>
+      <span id="lblStatus" class="bad">Disconnected</span>
+      <span id="lblSerial"></span>
+    </div>
+  </section>
+
+  <section id="device" class="needs-device">
+    <h2>Device</h2>
+    <div class="row">
+      <button data-cmd="LaserOn">Laser On</button>
+      <button data-cmd="LaserOff">Laser Off</button>
+      <button data-cmd="LaserTrig">Measure</button>
+      <button id="btnSyncTime">Sync Time</button>
+    </div>
+  </section>
+
+  <section id="shots">
+    <h2>Shots</h2>
+    <div class="row">
+      <label>Shots to read <input type="number" id="txtNumShot" value="100" min="0" max="1000"></label>
+      <button id="btnDownload" class="needs-device">download</button>
+      <button id="btnExport" disabled>Export CSV</button>
+    </div>
+    <div class="table-wrap"><table id="tblShots"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="cali">
+    <h2>Calibration</h2>
+    <div class="row">
+      <button id="btnDownCoeffs" class="needs-device">Download Coeffs</button>
+      <button id="btnSaveCoeffs" disabled>Save .coe</button>
+      <label class="button">Load .coe<input type="file" id="fileCoe" accept=".coe" hidden></label>
+      <button id="btnUploadCoeffs" disabled>Upload Coeffs</button>
+    </div>
+    <div class="cali-text"><pre id="lblInfo"></pre><pre id="lblCoeff"></pre></div>
+  </section>
+
+  <section id="firmware">
+    <h2>Firmware</h2>
+    <p class="banner">Firmware upgrade is untested on real hardware. Only use it if you accept the risk.</p>
+    <div class="row">
+      <label class="button">Choose .bin<input type="file" id="fileBin" accept=".bin" hidden></label>
+      <button id="btnUpgrade" class="needs-device" disabled>Upgrade</button>
+      <progress id="progFw" max="100" value="0"></progress>
+    </div>
+    <pre id="lblFirm">No Firmware Selected.</pre>
+  </section>
+
+  <details id="traffic">
+    <summary>Raw traffic</summary>
+    <div class="row"><button id="btnClearLog">Clear</button><button id="btnCopyLog">Copy</button></div>
+    <pre id="log"></pre>
+  </details>
+</main>
+<footer>
+  Port of <a href="https://github.com/tswcmpass/CavwayAssistant_Win">Cavway Assistant for Windows</a>. GPLv3.
+  <a href="https://github.com/Nate-the-Ace/cavway-assistant-web">Source</a>.
+</footer>
+</body>
+</html>

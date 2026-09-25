@@ -1,0 +1,38 @@
+:root {
+  --bg: #f6f6f4; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #d9d9d4;
+  --accent: #2c5f8a; --good: #2e7d32; --bad: #c62828; --warn-bg: #fff4d6; --warn-line: #e0b84a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615; --panel: #1f1f1d; --text: #e8e8e3; --muted: #9a9a93; --line: #34342f;
+    --accent: #7fb0d9; --good: #7bc47f; --bad: #ef7b7b; --warn-bg: #3a3118; --warn-line: #8a7230;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+header, main, footer { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+h1 { font-size: 20px; margin: 16px 0 8px; }
+h1 .sub { color: var(--muted); font-weight: 400; }
+h2 { font-size: 15px; margin: 0 0 8px; }
+section, details { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin: 0 0 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+button, .button {
+  font: inherit; padding: 5px 12px; border: 1px solid var(--line); border-radius: 4px;
+  background: var(--bg); color: var(--text); cursor: pointer;
+}
+button:hover:not(:disabled), .button:hover { border-color: var(--accent); }
+button:disabled { opacity: .45; cursor: default; }
+input[type=number] { width: 6em; font: inherit; padding: 4px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
+.good { color: var(--good); } .bad { color: var(--bad); }
+.banner { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 4px; padding: 6px 10px; margin: 0 0 8px; }
+.table-wrap { overflow: auto; max-height: 60vh; border: 1px solid var(--line); }
+table { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+th, td { padding: 3px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+th { position: sticky; top: 0; background: var(--panel); }
+td:nth-child(1), td:nth-child(2), td:last-child, th:nth-child(2), th:last-child { text-align: left; }
+pre { font: 12px/1.35 ui-monospace, Menlo, monospace; margin: 0; white-space: pre-wrap; }
+.cali-text { display: flex; flex-wrap: wrap; gap: 32px; }
+#log { max-height: 40vh; overflow: auto; }
+progress { width: 200px; }
+footer { color: var(--muted); padding-bottom: 24px; }
+a { color: var(--accent); }
