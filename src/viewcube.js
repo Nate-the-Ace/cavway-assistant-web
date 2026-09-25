@@ -63,7 +63,10 @@ export class ViewCube {
       if (act === 'resethome') { viewport.setHome(true); viewport.home(); }
       this._toggleMenu(false);
     };
-    document.addEventListener('pointerdown', (e) => { if (!this.el.contains(e.target)) this._toggleMenu(false); });
+    // Anything but the menu and its button closes it -- the cube and arrows included.
+    document.addEventListener('pointerdown', (e) => {
+      if (!e.target.closest?.('.vc-menu, .vc-home')) this._toggleMenu(false);
+    }, true);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') this._toggleMenu(false); });
     this.el.querySelectorAll('[data-step]').forEach((b) => { b.onclick = () => viewport.step(b.dataset.step); });
     for (const f of FACES) {
