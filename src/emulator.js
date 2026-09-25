@@ -32,24 +32,35 @@ export function encodeShot({ time, distance, azimuth, inclination, leg = true, f
   return s;
 }
 
+// A passage: each leg is followed by a fan of splays round the new station,
+// so the demo has walls to loft in 3D.
 function demoShots(n, now) {
   const shots = [];
-  let t = now - n * 90;
-  for (let i = 0; i < n; i++) {
-    const leg = i % 4 === 0 || i % 4 === 1;
+  let t = now - n * 40;
+  let az = 40, inc = -10;
+  for (let i = 0; shots.length < n; i++) {
+    const k = shots.length;
+    az = (az + ((i * 53) % 70) - 30 + 360) % 360;
+    inc = Math.max(-40, Math.min(40, inc + ((i * 29) % 30) - 15));
     shots.push(encodeShot({
-      time: (t += 60 + ((i * 37) % 50)),
-      distance: leg ? 3 + ((i * 1.37) % 9) : 0.5 + ((i * 0.83) % 4),
-      azimuth: (40 + i * 23.3) % 360,
-      inclination: ((i * 17) % 70) - 35,
-      leg,
-      flags: i === 5 ? 0 : i === 9 ? 2 : 7,
-      absG: 1 + ((i % 5) - 2) * 0.0015,
-      absM: 48 + ((i % 7) - 3) * 0.2,
-      dip: 60 + ((i % 3) - 1) * 0.3,
-      err: i === 12 ? [0x7f, 0x10, 0x27, 0x80, 0x27, 0, 0, 0, 0] : null,
-      seed: i,
+      time: (t += 45), distance: 3 + ((i * 1.37) % 5), azimuth: az, inclination: inc, leg: true,
+      flags: i === 3 ? 0 : i === 5 ? 2 : 7, absG: 1 + ((i % 5) - 2) * 0.0015, absM: 48 + ((i % 7) - 3) * 0.2,
+      dip: 60 + ((i % 3) - 1) * 0.3, err: i === 2 ? [0x7f, 0x10, 0x27, 0x80, 0x27, 0, 0, 0, 0] : null, seed: k,
     }));
+    const a = (az * Math.PI) / 180, c = (inc * Math.PI) / 180;
+    const d = [Math.sin(a) * Math.cos(c), Math.cos(a) * Math.cos(c), Math.sin(c)];
+    const r = [Math.cos(a), -Math.sin(a), 0];
+    const u = [d[1] * r[2] - d[2] * r[1], d[2] * r[0] - d[0] * r[2], d[0] * r[1] - d[1] * r[0]];
+    const width = 1.2 + ((i * 0.7) % 2), height = 1 + ((i * 0.9) % 1.8);
+    for (let j = 0; j < 6 && shots.length < n; j++) {
+      const th = (j * Math.PI) / 3 + 0.2;
+      const w = [0, 1, 2].map((q) => Math.cos(th) * width * r[q] + Math.sin(th) * height * u[q] + 0.1 * d[q]);
+      const dist = Math.hypot(...w);
+      shots.push(encodeShot({
+        time: (t += 8), distance: dist, azimuth: ((Math.atan2(w[0], w[1]) * 180) / Math.PI + 360) % 360,
+        inclination: (Math.asin(w[2] / dist) * 180) / Math.PI, leg: false, seed: shots.length,
+      }));
+    }
   }
   return shots;
 }
@@ -67,7 +78,7 @@ export function demoCali(now) {
 }
 
 export class Emulator {
-  constructor({ shots = 25, serial = 1234, now = Math.floor(Date.now() / 1000) - new Date().getTimezoneOffset() * 60 } = {}) {
+  constructor({ shots = 70, serial = 1234, now = Math.floor(Date.now() / 1000) - new Date().getTimezoneOffset() * 60 } = {}) {
     this.shots = demoShots(shots, now);
     this.mem = new Uint8Array(0x2000).fill(0xff); // 0x8000..0x9FFF
     this.memSet(0x8000, [now & 0xff, (now >>> 8) & 0xff, (now >>> 16) & 0xff, now >>> 24]);

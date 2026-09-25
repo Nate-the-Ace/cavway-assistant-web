@@ -5,8 +5,8 @@ import { Emulator } from './emulator.js';
 import { COLUMNS, tableRow, shotsCsv } from './shot.js';
 import { writeCoe, readCoe, caliText } from './coeffs.js';
 import { checkHeader, headerText } from './firmware.js';
-import { cavecadCsv, traverse } from './cavecad.js';
-import { renderPreview } from './preview.js';
+import { cavecadCsv } from './cavecad.js';
+import { loadCore, buildMesh, Viewport } from './view3d.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { transport: null, device: null, serial: 0, shots: [], cali: null, caliFromDevice: false, firmware: null, busy: new Set() };
@@ -65,12 +65,28 @@ async function connect() {
   refresh();
 }
 
+let viewport = null;
+
+async function draw3d(decl) {
+  if (!state.shots.length) { $('pvSummary').textContent = 'No shots downloaded'; return; }
+  try {
+    await loadCore();
+    viewport ??= new Viewport($('v3Canvas'), $('v3Labels'));
+    const csv = cavecadCsv(state.shots, { declination: String(decl), start: $('txtStart').value, mergeLegs: $('chkMerge').checked });
+    const mesh = buildMesh(csv, $('v3Color').value);
+    viewport.showWalls = $('v3Walls').checked;
+    viewport.setMesh(mesh);
+    const lg = mesh.legend;
+    $('v3Legend').textContent = lg ? `${lg.title}: ${lg.stops.map((x) => x.label).join(' · ')}` : '';
+    $('pvSummary').textContent = `${mesh.labels.names.length} stations, ${mesh.triangles.positions.length / 9} wall triangles`;
+  } catch (e) {
+    $('pvSummary').textContent = '3D view failed: ' + e.message;
+  }
+}
+
 function drawPreview() {
   const d = Number($('txtDecl').value.trim());
-  const decl = $('txtDecl').value.trim() !== '' && Number.isFinite(d) ? d : 0;
-  const view = document.querySelector('input[name=pvView]:checked').value;
-  const rows = traverse(state.shots, { start: $('txtStart').value, mergeLegs: $('chkMerge').checked }, decl);
-  $('pvSummary').textContent = renderPreview($('pvSvg'), rows, view);
+  draw3d($('txtDecl').value.trim() !== '' && Number.isFinite(d) ? d : 0);
 }
 
 function renderHead() {
@@ -219,8 +235,10 @@ function init() {
   $('btnClearLog').onclick = () => { $('log').textContent = ''; };
   $('btnCopyLog').onclick = () => navigator.clipboard.writeText($('log').textContent);
   for (const id of ['txtDecl', 'txtStart', 'chkMerge']) $(id).addEventListener('input', drawPreview);
-  document.querySelectorAll('input[name=pvView]').forEach((r) => r.addEventListener('change', drawPreview));
-  window.addEventListener('resize', drawPreview);
+  $('v3Color').addEventListener('change', drawPreview);
+  $('v3Walls').addEventListener('change', () => { if (viewport) { viewport.showWalls = $('v3Walls').checked; viewport.draw(); } });
+  document.querySelectorAll('[data-view]').forEach((b) => { b.onclick = () => viewport?.setView(b.dataset.view); });
+  window.addEventListener('resize', () => viewport?.draw());
   refresh();
   drawPreview();
 }

@@ -65,3 +65,7 @@ for the Cavway X1 cave-survey instrument.
 - `.coe` time and cali time are the stored epoch read as UTC, like the shot time.
 - Emulator fault switches: `strayBeforeReply`, `dropReplyNumber`,
   `corruptCrcAtPacket`. Laser trigger adds a shot.
+- Survey preview = one WebGL viewport over CaveCAD's CsMesh3d (vendored by
+  `tools/sync-cavecad.sh`, 9 Core files, loaded as classic scripts with
+  `include()` shimmed). Nathan asked for 3D only, no stacked 2D views
+  (2026-09-24). Demo device emits a leg plus a 6-splay fan per station so walls loft.

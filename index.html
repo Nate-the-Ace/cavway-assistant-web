@@ -56,12 +56,17 @@
     <div id="preview">
       <div class="row">
         <strong>Survey preview</strong>
-        <label><input type="radio" name="pvView" value="plan" checked> Plan</label>
-        <label><input type="radio" name="pvView" value="elevation"> Extended elevation</label>
+        <button data-view="plan">Plan</button><button data-view="north">Look N</button>
+        <button data-view="east">Look E</button><button data-view="iso">Iso</button>
+        <label>Colour <select id="v3Color">
+          <option value="depth">Depth</option><option value="distance">Distance in</option>
+          <option value="size">Passage size</option><option value="splay">Splay coverage</option>
+        </select></label>
+        <label><input type="checkbox" id="v3Walls" checked> Walls</label>
         <span id="pvSummary" class="hint"></span>
       </div>
-      <svg id="pvSvg" role="img" aria-label="Survey preview"></svg>
-      <p class="hint">Rough sketch using the export settings above, unadjusted. Red lines are shots the X1 flagged with an error. Hover a line for its reading. Uses magnetic north until a declination is entered.</p>
+      <div class="v3-wrap"><canvas id="v3Canvas"></canvas><div id="v3Labels"></div></div>
+      <p class="hint"><span id="v3Legend"></span><br>Rough, unadjusted: built by CaveCAD's own 3D code (CsMesh3d) from the CaveCAD export settings above, walls lofted through the splay tips. Magnetic north until a declination is entered. Drag to orbit, right-drag or Shift-drag to pan, scroll to zoom, double-click to fit.</p>
     </div>
     <div class="table-wrap"><table id="tblShots"><thead></thead><tbody></tbody></table></div>
   </section>
