@@ -25,7 +25,10 @@ zoom) built by CaveCAD's own 3D code: the export goes through CaveCAD's CSV
 reader, `CsNetwork.resolve` and `CsMesh3d.build`, vendored unmodified in
 `vendor/cavecad/` (GPLv3). Refresh it with `tools/sync-cavecad.sh`. A Fusion-style
 ViewCube (faces TOP, BOTTOM, N, S, E, W) turns with the camera; click a face,
-edge or corner to look from there, drag it to orbit, house for home.
+edge or corner to look from there, drag it to orbit. Looking straight at a
+face, arrows turn 90° to the neighbouring face or roll the view 90°. The house
+opens a menu: Go Home, Orthographic / Perspective, Set current view as Home,
+Reset Home (remembered in this browser).
 
 > Firmware upgrade has not been tested on a real X1 yet.
 

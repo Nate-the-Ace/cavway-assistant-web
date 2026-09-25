@@ -57,5 +57,27 @@ select { font: inherit; padding: 3px; background: var(--bg); color: var(--text);
 }
 .vc-label { position: absolute; inset: 0; display: grid; place-items: center; font: 600 11px system-ui, sans-serif; color: var(--text); pointer-events: none; letter-spacing: .04em; }
 .vc-cell:hover { background: color-mix(in srgb, var(--accent) 45%, transparent); }
-.vc-home { position: absolute; top: -4px; left: -4px; padding: 2px 3px; line-height: 0; border-radius: 4px; background: var(--panel); color: var(--muted); }
+.viewcube { width: 120px; height: 120px; }
+.vc-home { position: absolute; top: 0; left: 0; z-index: 2; display: flex; align-items: center; gap: 1px; padding: 3px 4px; line-height: 0; border-radius: 4px; background: var(--panel); color: var(--muted); }
 .vc-home:hover { color: var(--accent); }
+.vc-caret { font-size: 9px; line-height: 1; }
+.vc-menu {
+  position: absolute; top: 26px; left: 0; z-index: 3; min-width: 190px; padding: 4px 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 20px rgb(0 0 0 / .25);
+  transform: translateX(calc(-100% + 30px));
+}
+.vc-menu button { display: block; width: 100%; text-align: left; border: 0; border-radius: 0; background: none; padding: 5px 12px 5px 26px; position: relative; }
+.vc-menu button:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.vc-menu [aria-checked=true]::before { content: '●'; position: absolute; left: 10px; font-size: 9px; top: 7px; color: var(--accent); }
+.vc-menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+.vc-arrows { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .15s; }
+.vc-aligned .vc-arrows { opacity: 1; }
+.vc-aligned .vc-arrows button { pointer-events: auto; }
+.vc-arrow, .vc-roll { position: absolute; padding: 1px; line-height: 0; border: 0; background: none; color: var(--muted); }
+.vc-arrow:hover, .vc-roll:hover { color: var(--accent); }
+.vc-up { top: 8px; left: 55px; }
+.vc-down { bottom: 8px; left: 55px; transform: rotate(180deg); }
+.vc-left { left: 8px; top: 55px; transform: rotate(-90deg); }
+.vc-right { right: 8px; top: 55px; transform: rotate(90deg); }
+.vc-ccw { top: 14px; right: 30px; }
+.vc-cw { top: 14px; right: 12px; transform: scaleX(-1); }

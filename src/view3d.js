@@ -74,7 +74,15 @@ export class Viewport {
       p: gl.getAttribLocation(prog, 'p'), n: gl.getAttribLocation(prog, 'n'), c: gl.getAttribLocation(prog, 'c'),
       mvp: gl.getUniformLocation(prog, 'mvp'), nm: gl.getUniformLocation(prog, 'nm'), lit: gl.getUniformLocation(prog, 'lit'),
     };
-    this.yaw = -30; this.pitch = 30; this.dist = 50; this.target = [0, 0, 0];
+    this.yaw = -30; this.pitch = 30; this.roll = 0; this.dist = 50; this.target = [0, 0, 0];
+    this.ortho = false;
+    this.homeView = { yaw: -30, pitch: 30, roll: 0 };
+    try {
+      const saved = JSON.parse(localStorage.getItem('cavway.view3d') || '{}');
+      if (saved.home) this.homeView = saved.home;
+      if (typeof saved.ortho === 'boolean') this.ortho = saved.ortho;
+    } catch { /* storage unavailable: defaults */ }
+    ({ yaw: this.yaw, pitch: this.pitch, roll: this.roll } = this.homeView);
     this.showWalls = true;
     this.buffers = null;
     this._input();
@@ -124,12 +132,16 @@ export class Viewport {
 
   get fov() { return 40; }
 
-  _basis() {
-    const y = (this.yaw * Math.PI) / 180, p = (this.pitch * Math.PI) / 180;
+  // Yaw/pitch give the view direction; roll turns the picture about it.
+  _basis(yaw = this.yaw, pitch = this.pitch, roll = this.roll) {
+    const y = (yaw * Math.PI) / 180, p = (pitch * Math.PI) / 180, q = (roll * Math.PI) / 180;
     const fwd = [Math.sin(y) * Math.cos(p), Math.cos(y) * Math.cos(p), -Math.sin(p)]; // camera looks along fwd
-    const right = [Math.cos(y), -Math.sin(y), 0];
-    const up = [right[1] * fwd[2] - right[2] * fwd[1], right[2] * fwd[0] - right[0] * fwd[2], right[0] * fwd[1] - right[1] * fwd[0]];
-    return { fwd, right, up };
+    const r0 = [Math.cos(y), -Math.sin(y), 0];
+    const u0 = [r0[1] * fwd[2] - r0[2] * fwd[1], r0[2] * fwd[0] - r0[0] * fwd[2], r0[0] * fwd[1] - r0[1] * fwd[0]];
+    const c = Math.cos(q), sn = Math.sin(q);
+    const right = r0.map((v, i) => c * v + sn * u0[i]);
+    const up = u0.map((v, i) => c * v - sn * r0[i]);
+    return { fwd, right, up, r0, u0 };
   }
 
   _matrices() {
@@ -142,8 +154,16 @@ export class Viewport {
     ]);
     const aspect = this.canvas.width / Math.max(1, this.canvas.height);
     const f = 1 / Math.tan((this.fov / 2) * (Math.PI / 180));
-    const near = Math.max(0.05, this.dist / 1000), far = this.dist * 20 + 1000;
-    const proj = new Float32Array([f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) / (near - far), -1, 0, 0, (2 * far * near) / (near - far), 0]);
+    const far = this.dist * 20 + 1000;
+    let proj;
+    if (this.ortho) {
+      // Same size at the target plane as the perspective view, so toggling keeps the framing.
+      const h = this.dist * Math.tan((this.fov / 2) * (Math.PI / 180)), w = h * aspect, n = -far;
+      proj = new Float32Array([1 / w, 0, 0, 0, 0, 1 / h, 0, 0, 0, 0, -2 / (far - n), 0, 0, 0, -(far + n) / (far - n), 1]);
+    } else {
+      const near = Math.max(0.05, this.dist / 1000);
+      proj = new Float32Array([f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) / (near - far), -1, 0, 0, (2 * far * near) / (near - far), 0]);
+    }
     const nm = new Float32Array([right[0], up[0], -fwd[0], right[1], up[1], -fwd[1], right[2], up[2], -fwd[2]]);
     return { mvp: mat4mul(proj, view), nm };
   }
@@ -237,31 +257,76 @@ export class Viewport {
     this.draw();
   }
 
-  home() { this._tween(-30, 30); }
+  home() { this._tween(this.homeView.yaw, this.homeView.pitch, this.homeView.roll); }
+
+  setHome(reset = false) {
+    this.homeView = reset ? { yaw: -30, pitch: 30, roll: 0 } : { yaw: this.yaw, pitch: this.pitch, roll: this.roll };
+    this._save();
+  }
+
+  setOrtho(on) {
+    this.ortho = on;
+    this._save();
+    this.draw();
+  }
+
+  _save() {
+    try { localStorage.setItem('cavway.view3d', JSON.stringify({ home: this.homeView, ortho: this.ortho })); } catch { /* ignore */ }
+  }
 
   // Look from direction `dir` (camera placed on that side), as a ViewCube click.
   animateTo(dir) {
     const len = Math.hypot(...dir);
-    const f = dir.map((x) => -x / len);
-    const pitch = (Math.asin(Math.max(-1, Math.min(1, -f[2]))) * 180) / Math.PI;
-    // Straight down or up has no heading of its own: keep north up.
-    const yaw = Math.abs(f[2]) > 0.999 ? 0 : (Math.atan2(f[0], f[1]) * 180) / Math.PI;
-    this._tween(yaw, Math.max(-89.9, Math.min(89.9, pitch)));
+    this.orientTo(dir.map((x) => -x / len), null);
   }
 
-  _tween(yaw, pitch, ms = 300) {
-    const y0 = this.yaw, p0 = this.pitch;
-    const dy = ((yaw - y0 + 540) % 360) - 180; // shortest way round
+  // Camera looking along `f` with screen-up `u` (null: natural up, north up when vertical).
+  orientTo(f, u) {
+    const pitch = Math.max(-89.9, Math.min(89.9, (Math.asin(Math.max(-1, Math.min(1, -f[2]))) * 180) / Math.PI));
+    const yaw = Math.abs(f[2]) > 0.999 ? 0 : (Math.atan2(f[0], f[1]) * 180) / Math.PI;
+    let roll = 0;
+    if (u) {
+      const { r0, u0 } = this._basis(yaw, pitch, 0);
+      const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+      roll = (Math.atan2(-dot(u, r0), dot(u, u0)) * 180) / Math.PI;
+    }
+    this._tween(yaw, pitch, roll);
+  }
+
+  // Looking straight at a cube face (within a degree)?
+  faceAligned() {
+    const { fwd } = this._basis();
+    return Math.max(...fwd.map(Math.abs)) > 0.9998;
+  }
+
+  // ViewCube arrows: turn 90 degrees to the neighbouring face, or roll the picture.
+  step(kind) {
+    const { fwd, right, up } = this._basis();
+    const neg = (v) => v.map((x) => -x);
+    const snap = (v) => v.map((x) => Math.round(x)); // face-aligned, so axes are exact
+    const m = {
+      up: [neg(up), fwd], down: [up, neg(fwd)], left: [right, up], right: [neg(right), up],
+      cw: [fwd, neg(right)], ccw: [fwd, right],
+    }[kind];
+    this.orientTo(snap(m[0]), snap(m[1]));
+  }
+
+  _tween(yaw, pitch, roll = 0, ms = 300) {
+    const y0 = this.yaw, p0 = this.pitch, r0 = this.roll;
+    const wrap = (d) => ((d + 540) % 360) - 180; // shortest way round
+    const dy = wrap(yaw - y0), dr = wrap(roll - r0);
     const t0 = performance.now();
     const anim = (this._anim = {});
+    if (document.hidden) ms = 0; // no animation frames in a hidden page: jump
     const step = (now) => {
       if (this._anim !== anim) return;
-      const t = Math.min(1, (now - t0) / ms), e = t * t * (3 - 2 * t);
+      const t = ms ? Math.min(1, (now - t0) / ms) : 1, e = t * t * (3 - 2 * t);
       this.yaw = y0 + dy * e;
       this.pitch = p0 + (pitch - p0) * e;
+      this.roll = r0 + dr * e;
       this.draw();
       if (t < 1) requestAnimationFrame(step);
     };
-    requestAnimationFrame(step);
+    if (ms === 0) step(t0); else requestAnimationFrame(step);
   }
 }
