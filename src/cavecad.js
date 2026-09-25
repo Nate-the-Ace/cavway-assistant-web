@@ -64,7 +64,6 @@ export function cavecadCsv(shots, opts) {
   const raw = String(opts.declination ?? '').trim();
   const decl = Number(raw);
   if (raw === '' || !Number.isFinite(decl)) throw new Error('Enter the magnetic declination for the cave (0 if none).');
-  const items = groupShots(shots, opts);
   const lines = [];
   if (opts.name) lines.push('# name: ' + clean(opts.name));
   if (shots.length) lines.push('# date: ' + formatUtc(shots[0].time, 'yyyy-MM-dd'));
@@ -73,21 +72,66 @@ export function cavecadCsv(shots, opts) {
   lines.push('# unit: m');
   lines.push(`# source: Cavway X1${opts.serial ? ' serial ' + String(opts.serial).padStart(4, '0') : ''}, exported by Cavway Assistant Web; azimuths corrected to true`);
   lines.push('from,to,distance,azimuth,inclination,left,right,up,down,backazimuth,backinclination,flags,notes');
-  let station = clean(opts.start) || 'A1';
-  for (const { kind, shot } of items) {
+  for (const { from, to, shot, azimuth } of traverse(shots, opts, decl)) {
     const notes = [formatUtc(shot.time, 'HH:mm:ss')];
     if (FLAG_NOTE[shot.flags]) notes.push(FLAG_NOTE[shot.flags]);
     if (shot.merged) notes.push(`mean of ${shot.merged} shots`);
     if (shot.errorInfo && shot.errorInfo !== 'No error') notes.push('X1: ' + shot.errorInfo.trim());
-    const az = (((shot.azimuth + decl) % 360) + 360) % 360;
+    lines.push([from, to, shot.distance.toFixed(3), azimuth.toFixed(2), shot.inclination.toFixed(2),
+      '', '', '', '', '', '', '', notes.join('; ')].join(','));
+  }
+  return lines.join('\n') + '\n';
+}
+
+// Named rows: { kind, from, to ('' for splays), shot, azimuth (true) }.
+export function traverse(shots, opts, decl = 0) {
+  const rows = [];
+  let station = clean(opts.start) || 'A1';
+  for (const { kind, shot } of groupShots(shots, opts)) {
     let from = station, to = '';
     if (kind === 'leg') {
       to = nextStation(station);
       if (shot.flags === 2) [from, to] = [to, from]; // backsight: shot taken from the far station
       station = nextStation(station);
     }
-    lines.push([from, to, shot.distance.toFixed(3), az.toFixed(2), shot.inclination.toFixed(2),
-      '', '', '', '', '', '', '', notes.join('; ')].join(','));
+    rows.push({ kind, from, to, shot, azimuth: (((shot.azimuth + decl) % 360) + 360) % 360 });
   }
-  return lines.join('\n') + '\n';
+  return rows;
+}
+
+const vec = (az, inc, d) => {
+  const h = d * Math.cos(rad(inc));
+  return [h * Math.sin(rad(az)), h * Math.cos(rad(az)), d * Math.sin(rad(inc))];
+};
+
+// Station positions relative to the first station (x east, y north, z up, metres).
+// Legs whose from-station is not placed yet start a new piece at the origin's
+// last placed station, so a broken chain still draws.
+export function layout(rows) {
+  const pos = new Map();
+  const legs = [], splays = [];
+  let last = null;
+  for (const r of rows) {
+    if (!pos.size) pos.set(r.kind === 'leg' && r.shot.flags === 2 ? r.to : r.from, [0, 0, 0]);
+    const v = vec(r.azimuth, r.shot.inclination, r.shot.distance);
+    if (r.kind === 'splay') {
+      const a = pos.get(r.from) ?? last ?? [0, 0, 0];
+      splays.push({ a, b: [a[0] + v[0], a[1] + v[1], a[2] + v[2]], row: r });
+      continue;
+    }
+    if (pos.has(r.from)) {
+      const a = pos.get(r.from);
+      pos.set(r.to, [a[0] + v[0], a[1] + v[1], a[2] + v[2]]);
+    } else if (pos.has(r.to)) {
+      const b = pos.get(r.to);
+      pos.set(r.from, [b[0] - v[0], b[1] - v[1], b[2] - v[2]]);
+    } else {
+      const a = last ?? [0, 0, 0];
+      pos.set(r.from, a);
+      pos.set(r.to, [a[0] + v[0], a[1] + v[1], a[2] + v[2]]);
+    }
+    legs.push({ a: pos.get(r.from), b: pos.get(r.to), row: r });
+    last = pos.get(r.kind === 'leg' && r.shot.flags === 2 ? r.from : r.to);
+  }
+  return { stations: pos, legs, splays };
 }

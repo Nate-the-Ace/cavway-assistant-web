@@ -53,6 +53,16 @@
       </div>
       <p class="hint">Stations are numbered from the first station: each leg moves on one station, splays hang off the current one. Calibration shots are left out. Azimuths are corrected to true north by the declination (west is negative, 0 if the device was already set to true).</p>
     </fieldset>
+    <div id="preview">
+      <div class="row">
+        <strong>Survey preview</strong>
+        <label><input type="radio" name="pvView" value="plan" checked> Plan</label>
+        <label><input type="radio" name="pvView" value="elevation"> Extended elevation</label>
+        <span id="pvSummary" class="hint"></span>
+      </div>
+      <svg id="pvSvg" role="img" aria-label="Survey preview"></svg>
+      <p class="hint">Rough sketch using the export settings above, unadjusted. Red lines are shots the X1 flagged with an error. Hover a line for its reading. Uses magnetic north until a declination is entered.</p>
+    </div>
     <div class="table-wrap"><table id="tblShots"><thead></thead><tbody></tbody></table></div>
   </section>
 

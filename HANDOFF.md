@@ -36,7 +36,7 @@ for the Cavway X1 cave-survey instrument.
 - [x] Implementation (2026-09-24; spec treated as approved, built straight from it
       and the upstream C# source), 23 `node --test` tests, demo-mode browser check
 - [x] Push to GitHub
-- [ ] Enable GitHub Pages (main, root)
+- [x] GitHub Pages: https://nate-the-ace.github.io/cavway-assistant-web/
 - [ ] Real-device verification when the X1 arrives: `docs/real-device-checklist.md`
 
 ## Things worth knowing

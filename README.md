@@ -6,6 +6,7 @@ USB with the Web Serial API: no install, runs on Windows, macOS, Linux and Chrom
 
 - Needs desktop Chrome, Edge or Opera. Safari and Firefox have no Web Serial.
 - Linux: your user must be in the `dialout` group to open the port.
+- Live at https://nate-the-ace.github.io/cavway-assistant-web/
 - **Demo device** mode runs everything against a built-in emulator, no X1 needed.
 
 Features match the Windows app: laser on/off, measure, clock sync, shot download

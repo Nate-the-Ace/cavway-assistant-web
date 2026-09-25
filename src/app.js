@@ -5,7 +5,8 @@ import { Emulator } from './emulator.js';
 import { COLUMNS, tableRow, shotsCsv } from './shot.js';
 import { writeCoe, readCoe, caliText } from './coeffs.js';
 import { checkHeader, headerText } from './firmware.js';
-import { cavecadCsv } from './cavecad.js';
+import { cavecadCsv, traverse } from './cavecad.js';
+import { renderPreview } from './preview.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { transport: null, device: null, serial: 0, shots: [], cali: null, caliFromDevice: false, firmware: null, busy: new Set() };
@@ -64,6 +65,14 @@ async function connect() {
   refresh();
 }
 
+function drawPreview() {
+  const d = Number($('txtDecl').value.trim());
+  const decl = $('txtDecl').value.trim() !== '' && Number.isFinite(d) ? d : 0;
+  const view = document.querySelector('input[name=pvView]:checked').value;
+  const rows = traverse(state.shots, { start: $('txtStart').value, mergeLegs: $('chkMerge').checked }, decl);
+  $('pvSummary').textContent = renderPreview($('pvSvg'), rows, view);
+}
+
 function renderHead() {
   $('tblShots').tHead.innerHTML = '<tr>' + COLUMNS.map((c) => `<th>${c}</th>`).join('') + '</tr>';
 }
@@ -96,6 +105,7 @@ async function download() {
     state.busy.delete('download');
     $('btnDownload').textContent = 'download';
     refresh();
+    drawPreview();
   }
 }
 
@@ -208,7 +218,11 @@ function init() {
   $('btnUpgrade').onclick = guard(upgrade);
   $('btnClearLog').onclick = () => { $('log').textContent = ''; };
   $('btnCopyLog').onclick = () => navigator.clipboard.writeText($('log').textContent);
+  for (const id of ['txtDecl', 'txtStart', 'chkMerge']) $(id).addEventListener('input', drawPreview);
+  document.querySelectorAll('input[name=pvView]').forEach((r) => r.addEventListener('change', drawPreview));
+  window.addEventListener('resize', drawPreview);
   refresh();
+  drawPreview();
 }
 
 init();

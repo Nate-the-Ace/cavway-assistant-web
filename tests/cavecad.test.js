@@ -58,3 +58,15 @@ test('CaveCAD CsFormatCsv reads the export', { skip: !existsSync(core) && 'cavec
   assert.equal(s.shots[2].to, 'A3');
   assert.equal(s.shots[2].inclination, -12);
 });
+
+test('layout places stations, backsights and splays', async () => {
+  const { traverse, layout } = await import('../src/cavecad.js');
+  const rows = traverse([shot({ azimuth: 90, distance: 10 }), shot({ isLeg: false, azimuth: 0, distance: 2 }),
+    shot({ flags: 2, azimuth: 180, distance: 5, inclination: -30 })], { start: 'A1', mergeLegs: false });
+  const { stations, splays } = layout(rows);
+  const near = (p, q) => p.every((v, i) => Math.abs(v - q[i]) < 1e-9);
+  assert.ok(near(stations.get('A2'), [10, 0, 0]));
+  // backsight from A3 to A2 at 180 deg, -30: A3 lies north of A2 and higher
+  assert.ok(near(stations.get('A3'), [10, 5 * Math.cos(Math.PI / 6), 2.5]));
+  assert.ok(near(splays[0].b, [10, 2, 0]));
+});
