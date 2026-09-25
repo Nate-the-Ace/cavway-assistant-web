@@ -7,6 +7,7 @@ import { writeCoe, readCoe, caliText } from './coeffs.js';
 import { checkHeader, headerText } from './firmware.js';
 import { cavecadCsv } from './cavecad.js';
 import { loadCore, buildMesh, Viewport } from './view3d.js';
+import { ViewCube } from './viewcube.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { transport: null, device: null, serial: 0, shots: [], cali: null, caliFromDevice: false, firmware: null, busy: new Set() };
@@ -71,7 +72,11 @@ async function draw3d(decl) {
   if (!state.shots.length) { $('pvSummary').textContent = 'No shots downloaded'; return; }
   try {
     await loadCore();
-    viewport ??= new Viewport($('v3Canvas'), $('v3Labels'));
+    if (!viewport) {
+      viewport = new Viewport($('v3Canvas'), $('v3Labels'));
+      const cube = new ViewCube($('v3Wrap'), viewport);
+      viewport.onDraw = () => cube.update();
+    }
     const csv = cavecadCsv(state.shots, { declination: String(decl), start: $('txtStart').value, mergeLegs: $('chkMerge').checked });
     const mesh = buildMesh(csv, $('v3Color').value);
     viewport.showWalls = $('v3Walls').checked;
@@ -237,7 +242,6 @@ function init() {
   for (const id of ['txtDecl', 'txtStart', 'chkMerge']) $(id).addEventListener('input', drawPreview);
   $('v3Color').addEventListener('change', drawPreview);
   $('v3Walls').addEventListener('change', () => { if (viewport) { viewport.showWalls = $('v3Walls').checked; viewport.draw(); } });
-  document.querySelectorAll('[data-view]').forEach((b) => { b.onclick = () => viewport?.setView(b.dataset.view); });
   window.addEventListener('resize', () => viewport?.draw());
   refresh();
   drawPreview();

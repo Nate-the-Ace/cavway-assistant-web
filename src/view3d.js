@@ -158,6 +158,7 @@ export class Viewport {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
     this.overlay.replaceChildren();
+    this.onDraw?.();
     if (!this.buffers) return;
     const b = this.buffers, L = this.loc;
     const { mvp, nm } = this._matrices();
@@ -215,8 +216,8 @@ export class Viewport {
         const s = (2 * this.dist * Math.tan((this.fov / 2) * (Math.PI / 180))) / c.clientHeight;
         this.target = this.target.map((t, i) => t - right[i] * dx * s + up[i] * dy * s);
       } else {
-        this.yaw = (this.yaw + dx * 0.4) % 360;
-        this.pitch = Math.max(-89, Math.min(89, this.pitch + dy * 0.4));
+        this.orbit(dx, dy);
+        return;
       }
       this.draw();
     });
@@ -229,9 +230,38 @@ export class Viewport {
     c.addEventListener('dblclick', () => { this.viewAll(); this.draw(); });
   }
 
-  setView(name) {
-    [this.yaw, this.pitch] = { plan: [0, 89], north: [0, 0], east: [90, 0], iso: [-30, 30] }[name];
-    this.viewAll();
+  orbit(dx, dy) {
+    this._anim = null;
+    this.yaw = (this.yaw + dx * 0.4) % 360;
+    this.pitch = Math.max(-89.9, Math.min(89.9, this.pitch + dy * 0.4));
     this.draw();
+  }
+
+  home() { this._tween(-30, 30); }
+
+  // Look from direction `dir` (camera placed on that side), as a ViewCube click.
+  animateTo(dir) {
+    const len = Math.hypot(...dir);
+    const f = dir.map((x) => -x / len);
+    const pitch = (Math.asin(Math.max(-1, Math.min(1, -f[2]))) * 180) / Math.PI;
+    // Straight down or up has no heading of its own: keep north up.
+    const yaw = Math.abs(f[2]) > 0.999 ? 0 : (Math.atan2(f[0], f[1]) * 180) / Math.PI;
+    this._tween(yaw, Math.max(-89.9, Math.min(89.9, pitch)));
+  }
+
+  _tween(yaw, pitch, ms = 300) {
+    const y0 = this.yaw, p0 = this.pitch;
+    const dy = ((yaw - y0 + 540) % 360) - 180; // shortest way round
+    const t0 = performance.now();
+    const anim = (this._anim = {});
+    const step = (now) => {
+      if (this._anim !== anim) return;
+      const t = Math.min(1, (now - t0) / ms), e = t * t * (3 - 2 * t);
+      this.yaw = y0 + dy * e;
+      this.pitch = p0 + (pitch - p0) * e;
+      this.draw();
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 }

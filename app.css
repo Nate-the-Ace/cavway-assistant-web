@@ -47,3 +47,15 @@ input[type=text] { font: inherit; padding: 4px; background: var(--bg); color: va
 #v3Labels span { position: absolute; left: 0; top: 0; font-size: 11px; color: var(--muted); white-space: nowrap; }
 select { font: inherit; padding: 3px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
 [hidden] { display: none !important; }
+.viewcube { position: absolute; top: 12px; right: 12px; width: 96px; height: 96px; user-select: none; }
+.vc-stage { position: absolute; inset: 0; display: grid; place-items: center; }
+.vc-cube { position: relative; width: 0; height: 0; transform-style: preserve-3d; cursor: pointer; }
+.vc-face {
+  position: absolute; width: 64px; height: 64px; left: -32px; top: -32px; box-sizing: border-box;
+  background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--muted);
+  backface-visibility: hidden; display: grid; grid-template: 20% 60% 20% / 20% 60% 20%;
+}
+.vc-label { position: absolute; inset: 0; display: grid; place-items: center; font: 600 11px system-ui, sans-serif; color: var(--text); pointer-events: none; letter-spacing: .04em; }
+.vc-cell:hover { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.vc-home { position: absolute; top: -4px; left: -4px; padding: 2px 3px; line-height: 0; border-radius: 4px; background: var(--panel); color: var(--muted); }
+.vc-home:hover { color: var(--accent); }

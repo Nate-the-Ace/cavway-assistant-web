@@ -20,10 +20,12 @@ The X1 stores no station names, so stations are generated from a first station
 averaged into one leg, calibration shots are dropped, and azimuths are corrected
 to true north by the declination you enter (CaveCAD stores true azimuths).
 
-**Survey preview** is a 3D viewport (plan / look N / look E / iso, orbit, pan,
+**Survey preview** is a 3D viewport (orbit, pan,
 zoom) built by CaveCAD's own 3D code: the export goes through CaveCAD's CSV
 reader, `CsNetwork.resolve` and `CsMesh3d.build`, vendored unmodified in
-`vendor/cavecad/` (GPLv3). Refresh it with `tools/sync-cavecad.sh`.
+`vendor/cavecad/` (GPLv3). Refresh it with `tools/sync-cavecad.sh`. A Fusion-style
+ViewCube (faces TOP, BOTTOM, N, S, E, W) turns with the camera; click a face,
+edge or corner to look from there, drag it to orbit, house for home.
 
 > Firmware upgrade has not been tested on a real X1 yet.
 
