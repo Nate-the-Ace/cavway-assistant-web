@@ -25,7 +25,7 @@ const ROLL = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"
 const m3d = (cols) => `matrix3d(${cols.flat().map((x) => +x.toFixed(6)).join(',')})`;
 
 export class ViewCube {
-  // viewport: a Viewport (yaw, pitch, _basis(), animateTo(dir), orbit(dx, dy), home())
+  // viewport: a Viewport (_basis(), animateTo(dir), step(kind), orbit(dx, dy), home(), setOrtho(on), setHome(reset))
   constructor(host, viewport) {
     this.vp = viewport;
     this.el = document.createElement('div');

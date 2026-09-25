@@ -51,6 +51,67 @@ function mat4mul(a, b) {
   return o;
 }
 
+// Camera orientation is a unit quaternion [w, x, y, z] taking camera axes
+// (x = right, y = up, z = back) to world axes. No yaw/pitch: a trackball has no poles.
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const unit = (v) => { const l = Math.hypot(...v) || 1; return v.map((x) => x / l); };
+
+function quatFromBasis(right, up, back) {
+  const [m00, m10, m20] = right, [m01, m11, m21] = up, [m02, m12, m22] = back;
+  const tr = m00 + m11 + m22;
+  let q;
+  if (tr > 0) { const k = 2 * Math.sqrt(tr + 1); q = [k / 4, (m21 - m12) / k, (m02 - m20) / k, (m10 - m01) / k]; }
+  else if (m00 > m11 && m00 > m22) { const k = 2 * Math.sqrt(1 + m00 - m11 - m22); q = [(m21 - m12) / k, k / 4, (m01 + m10) / k, (m02 + m20) / k]; }
+  else if (m11 > m22) { const k = 2 * Math.sqrt(1 + m11 - m00 - m22); q = [(m02 - m20) / k, (m01 + m10) / k, k / 4, (m12 + m21) / k]; }
+  else { const k = 2 * Math.sqrt(1 + m22 - m00 - m11); q = [(m10 - m01) / k, (m02 + m20) / k, (m12 + m21) / k, k / 4]; }
+  const l = Math.hypot(...q);
+  return q.map((x) => x / l);
+}
+
+function basisFromQuat([w, x, y, z]) {
+  return {
+    right: [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)],
+    up: [2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)],
+    back: [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)],
+  };
+}
+
+const quatMul = (a, b) => [
+  a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+  a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+  a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+  a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+];
+const quatAxis = (axis, ang) => { const s = Math.sin(ang / 2); return [Math.cos(ang / 2), axis[0] * s, axis[1] * s, axis[2] * s]; };
+
+function slerp(a, b, t) {
+  let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+  if (d < 0) { b = b.map((x) => -x); d = -d; }
+  if (d > 0.9995) return unit4(a.map((x, i) => x + (b[i] - x) * t));
+  const th = Math.acos(d), s = Math.sin(th);
+  return a.map((x, i) => (Math.sin((1 - t) * th) * x + Math.sin(t * th) * b[i]) / s);
+}
+const unit4 = (q) => { const l = Math.hypot(...q); return q.map((x) => x / l); };
+
+// Camera looking along f with screen-up as close to u as possible.
+function quatLook(f, u) {
+  const back = unit(f.map((x) => -x));
+  let right = cross(u, back);
+  if (Math.hypot(...right) < 1e-6) right = cross([0, 1, 0], back); // u parallel to f
+  right = unit(right);
+  return quatFromBasis(right, cross(back, right), back);
+}
+
+// Natural up for a view direction: world up, or north when looking straight up or down.
+const naturalUp = (f) => (Math.abs(f[2]) > 0.999 ? [0, 1, 0] : [0, 0, 1]);
+
+const HOME = (() => {
+  const y = (-30 * Math.PI) / 180, p = (30 * Math.PI) / 180;
+  const f = [Math.sin(y) * Math.cos(p), Math.cos(y) * Math.cos(p), -Math.sin(p)];
+  return quatLook(f, [0, 0, 1]);
+})();
+
 export class Viewport {
   constructor(canvas, overlay) {
     this.canvas = canvas;
@@ -74,15 +135,15 @@ export class Viewport {
       p: gl.getAttribLocation(prog, 'p'), n: gl.getAttribLocation(prog, 'n'), c: gl.getAttribLocation(prog, 'c'),
       mvp: gl.getUniformLocation(prog, 'mvp'), nm: gl.getUniformLocation(prog, 'nm'), lit: gl.getUniformLocation(prog, 'lit'),
     };
-    this.yaw = -30; this.pitch = 30; this.roll = 0; this.dist = 50; this.target = [0, 0, 0];
+    this.dist = 50; this.target = [0, 0, 0];
     this.ortho = false;
-    this.homeView = { yaw: -30, pitch: 30, roll: 0 };
+    this.homeView = HOME;
     try {
       const saved = JSON.parse(localStorage.getItem('cavway.view3d') || '{}');
-      if (saved.home) this.homeView = saved.home;
+      if (Array.isArray(saved.home) && saved.home.length === 4) this.homeView = unit4(saved.home);
       if (typeof saved.ortho === 'boolean') this.ortho = saved.ortho;
     } catch { /* storage unavailable: defaults */ }
-    ({ yaw: this.yaw, pitch: this.pitch, roll: this.roll } = this.homeView);
+    this.q = this.homeView;
     this.showWalls = true;
     this.buffers = null;
     this._input();
@@ -132,22 +193,14 @@ export class Viewport {
 
   get fov() { return 40; }
 
-  // Yaw/pitch give the view direction; roll turns the picture about it.
-  _basis(yaw = this.yaw, pitch = this.pitch, roll = this.roll) {
-    const y = (yaw * Math.PI) / 180, p = (pitch * Math.PI) / 180, q = (roll * Math.PI) / 180;
-    const fwd = [Math.sin(y) * Math.cos(p), Math.cos(y) * Math.cos(p), -Math.sin(p)]; // camera looks along fwd
-    const r0 = [Math.cos(y), -Math.sin(y), 0];
-    const u0 = [r0[1] * fwd[2] - r0[2] * fwd[1], r0[2] * fwd[0] - r0[0] * fwd[2], r0[0] * fwd[1] - r0[1] * fwd[0]];
-    const c = Math.cos(q), sn = Math.sin(q);
-    const right = r0.map((v, i) => c * v + sn * u0[i]);
-    const up = u0.map((v, i) => c * v - sn * r0[i]);
-    return { fwd, right, up, r0, u0 };
+  _basis() {
+    const { right, up, back } = basisFromQuat(this.q);
+    return { right, up, fwd: back.map((x) => -x) };
   }
 
   _matrices() {
     const { fwd, right, up } = this._basis();
     const eye = this.target.map((t, i) => t - fwd[i] * this.dist);
-    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     const view = new Float32Array([
       right[0], up[0], -fwd[0], 0, right[1], up[1], -fwd[1], 0, right[2], up[2], -fwd[2], 0,
       -dot(right, eye), -dot(up, eye), dot(fwd, eye), 1,
@@ -250,17 +303,20 @@ export class Viewport {
     c.addEventListener('dblclick', () => { this.viewAll(); this.draw(); });
   }
 
+  // Trackball: turn about the screen's own axes, so what you grab follows the pointer.
   orbit(dx, dy) {
     this._anim = null;
-    this.yaw = (this.yaw + dx * 0.4) % 360;
-    this.pitch = Math.max(-89.9, Math.min(89.9, this.pitch + dy * 0.4));
+    const { right, up } = this._basis();
+    const k = (0.4 * Math.PI) / 180;
+    const r = quatMul(quatAxis(up, -dx * k), quatAxis(right, -dy * k));
+    this.q = unit4(quatMul(r, this.q));
     this.draw();
   }
 
-  home() { this._tween(this.homeView.yaw, this.homeView.pitch, this.homeView.roll); }
+  home() { this._tween(this.homeView); }
 
   setHome(reset = false) {
-    this.homeView = reset ? { yaw: -30, pitch: 30, roll: 0 } : { yaw: this.yaw, pitch: this.pitch, roll: this.roll };
+    this.homeView = reset ? HOME : this.q;
     this._save();
   }
 
@@ -276,22 +332,12 @@ export class Viewport {
 
   // Look from direction `dir` (camera placed on that side), as a ViewCube click.
   animateTo(dir) {
-    const len = Math.hypot(...dir);
-    this.orientTo(dir.map((x) => -x / len), null);
+    const f = unit(dir.map((x) => -x));
+    this.orientTo(f, naturalUp(f));
   }
 
-  // Camera looking along `f` with screen-up `u` (null: natural up, north up when vertical).
-  orientTo(f, u) {
-    const pitch = Math.max(-89.9, Math.min(89.9, (Math.asin(Math.max(-1, Math.min(1, -f[2]))) * 180) / Math.PI));
-    const yaw = Math.abs(f[2]) > 0.999 ? 0 : (Math.atan2(f[0], f[1]) * 180) / Math.PI;
-    let roll = 0;
-    if (u) {
-      const { r0, u0 } = this._basis(yaw, pitch, 0);
-      const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-      roll = (Math.atan2(-dot(u, r0), dot(u, u0)) * 180) / Math.PI;
-    }
-    this._tween(yaw, pitch, roll);
-  }
+  // Camera looking along `f` with screen-up `u`.
+  orientTo(f, u) { this._tween(quatLook(f, u)); }
 
   // Looking straight at a cube face (within a degree)?
   faceAligned() {
@@ -311,19 +357,15 @@ export class Viewport {
     this.orientTo(snap(m[0]), snap(m[1]));
   }
 
-  _tween(yaw, pitch, roll = 0, ms = 300) {
-    const y0 = this.yaw, p0 = this.pitch, r0 = this.roll;
-    const wrap = (d) => ((d + 540) % 360) - 180; // shortest way round
-    const dy = wrap(yaw - y0), dr = wrap(roll - r0);
+  _tween(q1, ms = 300) {
+    const q0 = this.q;
     const t0 = performance.now();
     const anim = (this._anim = {});
     if (document.hidden) ms = 0; // no animation frames in a hidden page: jump
     const step = (now) => {
       if (this._anim !== anim) return;
       const t = ms ? Math.min(1, (now - t0) / ms) : 1, e = t * t * (3 - 2 * t);
-      this.yaw = y0 + dy * e;
-      this.pitch = p0 + (pitch - p0) * e;
-      this.roll = r0 + dr * e;
+      this.q = unit4(slerp(q0, q1, e));
       this.draw();
       if (t < 1) requestAnimationFrame(step);
     };

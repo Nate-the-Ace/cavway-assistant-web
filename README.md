@@ -20,7 +20,7 @@ The X1 stores no station names, so stations are generated from a first station
 averaged into one leg, calibration shots are dropped, and azimuths are corrected
 to true north by the declination you enter (CaveCAD stores true azimuths).
 
-**Survey preview** is a 3D viewport (orbit, pan,
+**Survey preview** is a 3D viewport (trackball orbit, pan,
 zoom) built by CaveCAD's own 3D code: the export goes through CaveCAD's CSV
 reader, `CsNetwork.resolve` and `CsMesh3d.build`, vendored unmodified in
 `vendor/cavecad/` (GPLv3). Refresh it with `tools/sync-cavecad.sh`. A Fusion-style
