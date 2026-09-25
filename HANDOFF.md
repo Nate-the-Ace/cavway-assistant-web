@@ -53,6 +53,11 @@ for the Cavway X1 cave-survey instrument.
 
 ## Implementation notes
 
+- CaveCAD export (`src/cavecad.js`, added 2026-09-24 at Nathan's request) targets
+  `CsFormatCsv` in cavecad-tools. A test parses the export with the real CaveCAD
+  reader when `../cavecad-tools` is checked out beside this repo. Leg-merge
+  tolerance 5 cm / 1.5 deg is a guess until the X1's leg storage is known.
+
 - Number formatting reproduces .NET Framework (`src/format.js`): floats go through
   7 significant digits, doubles 15, then round half away from zero; `.coe` numbers
   use .NET `G15`/`G7` text (including `E-05` style), so files diff clean against

@@ -41,6 +41,18 @@
       <button id="btnDownload" class="needs-device">download</button>
       <button id="btnExport" disabled>Export CSV</button>
     </div>
+    <fieldset id="cavecadExport">
+      <legend>Export for CaveCAD</legend>
+      <div class="row">
+        <label>Cave name <input type="text" id="txtCaveName" size="18"></label>
+        <label>Team <input type="text" id="txtTeam" size="18"></label>
+        <label>First station <input type="text" id="txtStart" value="A1" size="5"></label>
+        <label>Declination &deg;E <input type="text" id="txtDecl" size="6" placeholder="required" inputmode="decimal"></label>
+        <label><input type="checkbox" id="chkMerge" checked> Merge repeated leg shots</label>
+        <button id="btnExportCaveCAD" disabled>Export CaveCAD CSV</button>
+      </div>
+      <p class="hint">Stations are numbered from the first station: each leg moves on one station, splays hang off the current one. Calibration shots are left out. Azimuths are corrected to true north by the declination (west is negative, 0 if the device was already set to true).</p>
+    </fieldset>
     <div class="table-wrap"><table id="tblShots"><thead></thead><tbody></tbody></table></div>
   </section>
 

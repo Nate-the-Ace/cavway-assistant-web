@@ -5,6 +5,7 @@ import { Emulator } from './emulator.js';
 import { COLUMNS, tableRow, shotsCsv } from './shot.js';
 import { writeCoe, readCoe, caliText } from './coeffs.js';
 import { checkHeader, headerText } from './firmware.js';
+import { cavecadCsv } from './cavecad.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { transport: null, device: null, serial: 0, shots: [], cali: null, caliFromDevice: false, firmware: null, busy: new Set() };
@@ -29,6 +30,7 @@ function refresh() {
   document.querySelectorAll('.needs-device, .needs-device button').forEach((el) => { el.disabled = !on; });
   $('btnDownload').disabled = !on || state.busy.has('download');
   $('btnExport').disabled = state.shots.length === 0;
+  $('btnExportCaveCAD').disabled = state.shots.length === 0;
   $('btnSaveCoeffs').disabled = !(state.cali && state.caliFromDevice);
   $('btnUploadCoeffs').disabled = !on || !state.cali;
   $('btnUpgrade').disabled = !on || !state.firmware || state.busy.has('fw');
@@ -185,6 +187,19 @@ function init() {
   };
   $('btnDownload').onclick = guard(download);
   $('btnExport').onclick = () => save('cavway_shots.csv', shotsCsv(state.shots), 'text/csv');
+  $('btnExportCaveCAD').onclick = () => {
+    try {
+      const csv = cavecadCsv(state.shots, {
+        declination: $('txtDecl').value, start: $('txtStart').value, name: $('txtCaveName').value,
+        team: $('txtTeam').value, serial: state.serial, mergeLegs: $('chkMerge').checked,
+      });
+      const base = ($('txtCaveName').value.trim() || 'cavway').replace(/[^\w-]+/g, '_');
+      save(`${base}_cavecad.csv`, csv, 'text/csv');
+    } catch (e) {
+      alert(e.message);
+      $('txtDecl').focus();
+    }
+  };
   $('btnDownCoeffs').onclick = guard(downloadCoeffs);
   $('btnSaveCoeffs').onclick = () => save(`cavway_${String(state.cali.serial).padStart(4, '0')}.coe`, writeCoe(state.cali), 'text/plain');
   $('fileCoe').onchange = (e) => { if (e.target.files[0]) loadCoe(e.target.files[0]); e.target.value = ''; };

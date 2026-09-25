@@ -12,6 +12,13 @@ Features match the Windows app: laser on/off, measure, clock sync, shot download
 and CSV export, calibration coefficient download / save / load / upload (`.coe`
 files interchange with the Windows app), and firmware upgrade.
 
+Beyond the Windows app: **Export CaveCAD CSV** writes the survey CSV that
+[CaveCAD](https://github.com/Nate-the-Ace/CaveCAD)'s Cave Survey add-on imports.
+The X1 stores no station names, so stations are generated from a first station
+(legs advance, splays hang off the current station). Repeated leg shots are
+averaged into one leg, calibration shots are dropped, and azimuths are corrected
+to true north by the declination you enter (CaveCAD stores true azimuths).
+
 > Firmware upgrade has not been tested on a real X1 yet.
 
 ## Development

@@ -14,3 +14,4 @@ Windows app on hand to compare. Tick each item or note what differed.
 - [ ] Save .coe, load it in the Windows app; save from the Windows app, load here. Numbers agree.
 - [ ] Upload the just-downloaded coeffs back; download again; unchanged.
 - [ ] Firmware: only with a known-good .bin and the Windows app ready to recover. Upgrade, then confirm the new version on the device. If it works, remove the "untested" banner.
+- [ ] CaveCAD export: survey a short line with splays and a backsight. Check how the X1 stores a leg (one shot, or three flagged as legs) so merging is right, that backsight shots come out reversed, and that the file imports into CaveCAD and plots as surveyed.

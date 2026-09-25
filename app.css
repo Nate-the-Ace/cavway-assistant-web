@@ -36,3 +36,7 @@ pre { font: 12px/1.35 ui-monospace, Menlo, monospace; margin: 0; white-space: pr
 progress { width: 200px; }
 footer { color: var(--muted); padding-bottom: 24px; }
 a { color: var(--accent); }
+fieldset { border: 1px solid var(--line); border-radius: 4px; margin: 0 0 8px; padding: 8px 10px; }
+legend { color: var(--muted); padding: 0 4px; }
+.hint { color: var(--muted); margin: 0; font-size: 12px; }
+input[type=text] { font: inherit; padding: 4px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
