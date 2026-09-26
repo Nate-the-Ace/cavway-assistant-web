@@ -43,6 +43,7 @@ class BufferedTransport {
     w.done(out);
   }
   flushInput() { this.buf = new Uint8Array(0); }
+  async setSignals() {}
 
   // Resolves with the first `predicate(buf)` bytes once it returns >= 0.
   read(predicate, timeoutMs) {
@@ -92,6 +93,7 @@ export class WebSerialTransport extends BufferedTransport {
     this._emit('tx', bytes);
     await this.writer.write(bytes);
   }
+  setSignals(signals) { return this.port.setSignals(signals); }
   async close() {
     this._closing = true;
     this.isOpen = false;
@@ -117,5 +119,9 @@ export class FakeTransport extends BufferedTransport {
     }
   }
   async close() { this.isOpen = false; }
+  async setSignals(signals) {
+    if (!this.isOpen) throw new Error('Port closed');
+    this.emulator.setSignals?.(signals);
+  }
   unplug() { this._lost(); }
 }

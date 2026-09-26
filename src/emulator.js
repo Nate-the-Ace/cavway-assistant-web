@@ -168,6 +168,17 @@ export class Emulator {
     }
   }
 
+  // Dropping DTR or RTS holds the device in reset; raising them boots it.
+  setSignals({ dataTerminalReady, requestToSend }) {
+    if (dataTerminalReady === false || requestToSend === false) {
+      this.laser = false;
+      this.caliMode = false;
+      this.fw = null;
+      this.pending = new Uint8Array(0);
+      this.resets = (this.resets ?? 0) + 1;
+    }
+  }
+
   // Laser trigger stores a new leg at the next free slot.
   measure() {
     const clock = this.mem[0] | (this.mem[1] << 8) | (this.mem[2] << 16) | (this.mem[3] << 24);

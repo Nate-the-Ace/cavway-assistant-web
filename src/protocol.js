@@ -81,6 +81,20 @@ export class Device {
 
   command(c) { return this._run(() => this._send(Uint8Array.of(c))); }
 
+  // Pulses DTR and RTS low then high, the usual USB-serial reset. Nothing in
+  // the Windows app does this, so whether the X1 wires either line to its
+  // reset is unknown until tested on hardware.
+  resetDevice({ holdMs = 100, bootMs = 600 } = {}) {
+    return this._run(async () => {
+      if (!this.t.isOpen) throw new ProtocolError('Device not connected');
+      await this.t.setSignals({ dataTerminalReady: false, requestToSend: false });
+      await new Promise((r) => setTimeout(r, holdMs));
+      await this.t.setSignals({ dataTerminalReady: true, requestToSend: true });
+      await new Promise((r) => setTimeout(r, bootMs));
+      this.t.flushInput();
+    });
+  }
+
   // 0 when unreadable, as UART.readSerial.
   async readSerial() {
     try {

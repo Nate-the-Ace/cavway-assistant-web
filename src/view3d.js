@@ -156,6 +156,14 @@ export class Viewport {
     return b;
   }
 
+  clear() {
+    if (this.buffers) for (const b of Object.values(this.buffers)) if (b instanceof WebGLBuffer) this.gl.deleteBuffer(b);
+    this.buffers = null;
+    this.labels = null;
+    this.bounds = null;
+    this.draw();
+  }
+
   setMesh(mesh) {
     const gl = this.gl;
     if (this.buffers) for (const b of Object.values(this.buffers)) if (b instanceof WebGLBuffer) gl.deleteBuffer(b);

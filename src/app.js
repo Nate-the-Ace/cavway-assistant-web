@@ -36,6 +36,7 @@ function refresh() {
   $('btnSaveCoeffs').disabled = !(state.cali && state.caliFromDevice);
   $('btnUploadCoeffs').disabled = !on || !state.cali;
   $('btnUpgrade').disabled = !on || !state.firmware || state.busy.has('fw');
+  $('btnClearSession').disabled = state.busy.size > 0;
   $('btnConnect').textContent = on ? 'Disconnect' : 'Connect';
   $('chkDemo').disabled = on;
   $('chkAllPorts').disabled = on || $('chkDemo').checked;
@@ -92,6 +93,31 @@ async function draw3d(decl) {
 function drawPreview() {
   const d = Number($('txtDecl').value.trim());
   draw3d($('txtDecl').value.trim() !== '' && Number.isFinite(d) ? d : 0);
+}
+
+// Reset device: DTR/RTS pulse, then read the serial again as after connecting.
+async function resetDevice() {
+  await state.device.resetDevice();
+  state.serial = await state.device.readSerial();
+  refresh();
+  alert('Reset sent (DTR/RTS pulse). Untested on a real X1.');
+}
+
+// Clear session: back to a freshly loaded page, disconnected.
+async function clearSession() {
+  if (state.transport?.isOpen) await state.transport.close();
+  Object.assign(state, { transport: null, device: null, serial: 0, shots: [], cali: null, caliFromDevice: false, firmware: null });
+  $('tblShots').tBodies[0].replaceChildren();
+  $('btnDownload').textContent = 'download';
+  $('lblInfo').textContent = '';
+  $('lblCoeff').textContent = '';
+  $('lblFirm').textContent = 'No Firmware Selected.';
+  $('progFw').value = 0;
+  $('log').textContent = '';
+  $('v3Legend').textContent = '';
+  $('pvSummary').textContent = 'No shots downloaded';
+  viewport?.clear();
+  refresh();
 }
 
 function renderHead() {
@@ -213,6 +239,8 @@ function init() {
   $('btnConnect').onclick = guard(connect);
   $('chkDemo').onchange = refresh;
   document.querySelectorAll('[data-cmd]').forEach((b) => { b.onclick = guard(() => state.device.command(Command[b.dataset.cmd])); });
+  $('btnResetDevice').onclick = guard(resetDevice);
+  $('btnClearSession').onclick = guard(clearSession);
   $('btnSyncTime').onclick = async () => {
     try { await state.device.syncTime(); alert('sync time successful!'); } catch { alert('sync time failed'); }
   };

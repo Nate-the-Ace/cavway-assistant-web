@@ -69,3 +69,8 @@ for the Cavway X1 cave-survey instrument.
   `tools/sync-cavecad.sh`, 9 Core files, loaded as classic scripts with
   `include()` shimmed). Nathan asked for 3D only, no stacked 2D views
   (2026-09-24). Demo device emits a leg plus a 6-splay fan per station so walls loft.
+- 2026-09-25: **Reset device** (Device row) pulses DTR+RTS low 100 ms then
+  high, waits 600 ms, re-reads the serial. Not in the Windows app; untested on
+  an X1 (checklist item). **Clear session** (Connection row) disconnects and
+  empties shots, calibration, chosen firmware, progress, log and the 3D view.
+  Both exercised against the X1 emulator (`../cavway-x1-emulator`).

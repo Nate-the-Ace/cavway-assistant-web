@@ -118,3 +118,20 @@ test('disconnect fails pending read and later ops', async () => {
   assert.ok(disc);
   await assert.rejects(dev.readMemory(ADDR.serial, 4), /not connected/);
 });
+
+test('reset device pulses DTR/RTS and leaves the device usable', async () => {
+  const { emu, t, dev } = await connect();
+  const seen = [];
+  const orig = emu.setSignals.bind(emu);
+  emu.setSignals = (s) => { seen.push(s); orig(s); };
+  await dev.command(Command.LaserOn);
+  await dev.resetDevice({ holdMs: 1, bootMs: 1 });
+  assert.deepEqual(seen, [
+    { dataTerminalReady: false, requestToSend: false },
+    { dataTerminalReady: true, requestToSend: true },
+  ]);
+  assert.equal(emu.laser, false);
+  assert.equal(await dev.readSerial(), 4321);
+  await t.close();
+  await assert.rejects(dev.resetDevice(), /not connected/);
+});
